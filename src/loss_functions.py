@@ -8,7 +8,7 @@ class LossFunction:
     def __init__(self, criterion=nn.CrossEntropyLoss()):
         self.criterion = criterion
 
-    def __call__(self, x, y, norm):
+    def __call__(self, x, y):
         # baseline: criterion is cross entropy loss
         loss = self.criterion(x, y)
         # experiment: use label smoothing

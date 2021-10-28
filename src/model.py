@@ -7,7 +7,7 @@ from torch_shallow_neural_classifier import TorchShallowNeuralClassifier
 
 class BertBaselineModel(nn.Module):
     def __init__(self, weights_name, n_classes_, *args, **kwargs):
-        super().__init__()
+        super().__init__(*args, **kwargs)
         self.bert = BertModel.from_pretrained(weights_name)
         self.bert.train()
         self.hidden_dim = self.bert.embeddings.word_embeddings.embedding_dim
@@ -15,13 +15,12 @@ class BertBaselineModel(nn.Module):
 
     def forward(self, indices, mask):
         bert_representations = self.bert(input_ids=indices, attention_mask=mask)
-        linear_layer = self.linear_layer(bert_representations.pooler_output)
-        return nn.functional.softmax(linear_layer, dim=-1)
+        return self.linear_layer(bert_representations.pooler_output)
 
 class BertBaselineClassifier(TorchShallowNeuralClassifier):
 
     def __init__(self, weights_name, n_classes_, *args, **kwargs):
-        super().__init__()
+        super().__init__(*args, **kwargs)
         self.weights_name = weights_name
         self.n_classes_ = n_classes_
         self.tokenizer = BertTokenizer.from_pretrained(weights_name)

@@ -1,10 +1,11 @@
 import copy
 import numpy as np
 import pickle
-from sklearn.model_selection import train_test_split
 import torch
-import torch.nn as nn
 import utils
+
+from sklearn.model_selection import train_test_split
+
 
 __author__ = "Christopher Potts"
 __version__ = "CS224u, Stanford, Spring 2021"
