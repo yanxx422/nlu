@@ -31,8 +31,7 @@ device = torch.cuda.current_device() if torch.cuda.is_available() else 'cpu'
 # Initialize the model
 model = BertBaselineClassifier(weights_name='bert-base-cased',
                                n_classes_=2,
-                               batch_size=8,  # Small batches to avoid memory overload.
-                               max_iter=1)  # We'll search based on 1 iteration for efficiency.)
+                               batch_size=64)
 
 # Initialize data
 data = pd.read_csv(
@@ -41,7 +40,7 @@ X = data['text']
 y = data['label']
 confidence = data['agreement_level']
 
-X_train, X_test, y_train, y_test = train_test_split(X[:100], y[:100], test_size=0.2, random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 if args.train:
     smoothed_labels = utils.smooth_labels(y, confidence)
