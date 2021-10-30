@@ -1,8 +1,6 @@
 from collections import Counter
-import csv
-import logging
+import torch
 import numpy as np
-import pandas as pd
 import random
 from scipy import stats
 from sklearn.base import TransformerMixin
@@ -19,6 +17,15 @@ START_SYMBOL = "<s>"
 END_SYMBOL = "</s>"
 UNK_SYMBOL = "$UNK"
 
+def smooth_labels(labels, confidence):
+    scale = {'A++':0, 'A+': 0.1, 'A0':0.2}
+    smoothed_labels = []
+    for idx, val in labels.items():
+        if val == 1:
+            smoothed_labels.append(val - scale[confidence[idx]])
+        else:
+            smoothed_labels.append(scale[confidence[idx]])
+    return torch.Tensor(smoothed_labels)
 
 def glove2dict(src_filename):
     """

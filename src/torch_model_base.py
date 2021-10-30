@@ -17,6 +17,7 @@ class TorchModelBase:
             max_iter=1000,
             eta=0.001,
             optimizer_class=torch.optim.Adam,
+            loss_function=torch.nn.CrossEntropyLoss(),
             l2_strength=0,
             gradient_accumulation_steps=1,
             max_grad_norm=None,
@@ -134,6 +135,7 @@ class TorchModelBase:
         self.max_iter = max_iter
         self.eta = eta
         self.optimizer_class = optimizer_class
+        self.loss = loss_function
         self.l2_strength = l2_strength
         self.gradient_accumulation_steps = max([gradient_accumulation_steps, 1])
         self.max_grad_norm = max_grad_norm
@@ -247,7 +249,7 @@ class TorchModelBase:
             weight_decay=self.l2_strength,
             **self.optimizer_kwargs)
 
-    def fit(self, loss_function, *args):
+    def fit(self, *args):
         """
         Generic optimization method.
 
@@ -327,8 +329,6 @@ class TorchModelBase:
         dataset = self.build_dataset(*args)
         dataloader = self._build_dataloader(dataset, shuffle=True)
 
-        # Loss function
-        self.loss = loss_function
         # Graph:
         if not self.warm_start or not hasattr(self, "model"):
             self.model = self.build_graph()
@@ -357,12 +357,14 @@ class TorchModelBase:
 
                 batch = [x.to(self.device, non_blocking=True) for x in batch]
 
-                X_batch = batch[: -1]
+                X_batch = batch[:-1]
                 y_batch = batch[-1]
 
                 batch_preds = self.model(*X_batch)
 
-                err = self.loss(batch_preds, y_batch)
+                batch_logits = torch.nn.functional.softmax(batch_preds, dim=-1)
+
+                err = self.loss(batch_logits, y_batch)
 
                 if self.gradient_accumulation_steps > 1 and \
                   self.loss.reduction == "mean": err /= self.gradient_accumulation_steps

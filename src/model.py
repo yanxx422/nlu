@@ -30,6 +30,7 @@ class BertBaselineClassifier(TorchShallowNeuralClassifier):
         # sets model in TorchShallowNeuralClassifier fit
         return BertBaselineModel(self.weights_name, self.n_classes_)
 
+# TODO: modify to use empirical distribution as labels as in Ex Machina: Personal Attacks Seen at Scale?
     def build_dataset(self, X, y=None):
         data = self.tokenizer.batch_encode_plus(
             X,
@@ -41,13 +42,14 @@ class BertBaselineClassifier(TorchShallowNeuralClassifier):
         mask = torch.tensor(data['attention_mask'])
         if y is None:
             dataset = torch.utils.data.TensorDataset(indices, mask)
-        # TODO: modify if we use empirical distribution as labels as in Ex Machina: Personal Attacks Seen at Scale?
         else:
             self.classes_ = sorted(set(y))
             self.n_classes_ = len(self.classes_)
             class2index = dict(zip(self.classes_, range(self.n_classes_)))
             y = [class2index[label] for label in y]
             y = torch.tensor(y)
+            print(y.size())
+            print(indices.size())
             dataset = torch.utils.data.TensorDataset(indices, mask, y)
         return dataset
 

@@ -4,39 +4,29 @@ import torch.nn as nn
 from torch.autograd import Variable
 
 
-class LossFunction:
-    def __init__(self, criterion=nn.CrossEntropyLoss()):
-        self.criterion = criterion
+# experiment: scale loss as in https://aclanthology.org/E14-1078.pdf
 
-    def __call__(self, x, y):
-        # baseline: criterion is cross entropy loss
-        loss = self.criterion(x, y)
-        # experiment: use label smoothing
-        # experiment: scale loss as in https://aclanthology.org/E14-1078.pdf
-        return loss
+# Adapted from Annotated Transformer
 
-
-# Borrowed from Annotated Transformer -- EXPERIMENT
-# TODO: Audit
-class LabelSmoothing(nn.Module):
-
-    def __init__(self, n_classes, padding_idx, smoothing=0.0):
+class LabelSmoothingLoss(nn.Module):
+    def __init__(self, classes, smoothing=0.0, dim=-1, weight = None):
+        """if smoothing == 0, it's one-hot method
+           if 0 < smoothing < 1, it's smooth method
+        """
         super().__init__()
-        self.criterion = nn.CrossEntropyLoss(size_average=False)
-        self.padding_idx = padding_idx
         self.confidence = 1.0 - smoothing
         self.smoothing = smoothing
-        self.n_classes = n_classes
-        self.true_dist = None
+        self.weight = weight
+        self.cls = classes
+        self.dim = dim
 
-    def forward(self, x, target):
-        assert x.size(1) == self.size
-        true_dist = x.data.clone()
-        true_dist.fill_(self.smoothing)
-        true_dist.scatter_(1, target.data.unsqueeze(1), self.confidence)
-        true_dist[:, self.padding_idx] = 0
-        mask = torch.nonzero(target.data == self.padding_idx)
-        if mask.dim() > 0:
-            true_dist.index_fill_(0, mask.squeeze(), 0.0)
-        self.true_dist = true_dist
-        return self.criterion(x, Variable(true_dist, requires_grad=False))
+    def forward(self, prediction, target):
+
+        if self.weight is not None:
+            prediction = prediction * self.weight.unsqueeze(0)
+
+        with torch.no_grad():
+            true_dist = torch.zeros_like(prediction)
+            true_dist.fill_(self.smoothing / (self.cls - 1))
+            true_dist.scatter_(1, target.data.unsqueeze(1), self.confidence)
+        return torch.mean(torch.sum(-true_dist * prediction, dim=self.dim))
