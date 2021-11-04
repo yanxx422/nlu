@@ -17,12 +17,12 @@ class TorchModelBase:
             max_iter=1000,
             eta=0.001,
             optimizer_class=torch.optim.Adam,
-            loss_function=torch.nn.CrossEntropyLoss(),
+            loss=torch.nn.CrossEntropyLoss(),
             l2_strength=0,
             gradient_accumulation_steps=1,
             max_grad_norm=None,
             warm_start=False,
-            early_stopping=False,
+            early_stopping=True,
             validation_fraction=0.1,
             n_iter_no_change=10,
             tol=1e-5,
@@ -135,7 +135,7 @@ class TorchModelBase:
         self.max_iter = max_iter
         self.eta = eta
         self.optimizer_class = optimizer_class
-        self.loss = loss_function
+        self.loss = loss
         self.l2_strength = l2_strength
         self.gradient_accumulation_steps = max([gradient_accumulation_steps, 1])
         self.max_grad_norm = max_grad_norm
@@ -362,9 +362,7 @@ class TorchModelBase:
 
                 batch_preds = self.model(*X_batch)
 
-                batch_logits = torch.nn.functional.softmax(batch_preds, dim=-1)
-
-                err = self.loss(batch_logits, y_batch)
+                err = self.loss(batch_preds, y_batch)
 
                 if self.gradient_accumulation_steps > 1 and \
                   self.loss.reduction == "mean": err /= self.gradient_accumulation_steps

@@ -49,7 +49,7 @@ class TorchShallowNeuralClassifier(TorchModelBase):
         self.hidden_dim = hidden_dim
         self.hidden_activation = hidden_activation
         super().__init__(**base_kwargs)
-        self.loss = nn.CrossEntropyLoss(reduction="mean")
+        # self.loss = nn.CrossEntropyLoss(reduction="mean")
         self.params += ['hidden_dim', 'hidden_activation']
 
     def build_graph(self):
@@ -181,6 +181,7 @@ class TorchShallowNeuralClassifier(TorchModelBase):
 
         """
         probs = self.predict_proba(X, device=device)
+        print(list([i for i in probs.argmax(axis=1)]))
         return [self.classes_[i] for i in probs.argmax(axis=1)]
 
 

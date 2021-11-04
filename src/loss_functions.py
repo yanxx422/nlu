@@ -8,25 +8,22 @@ from torch.autograd import Variable
 
 # Adapted from Annotated Transformer
 
-class LabelSmoothingLoss(nn.Module):
-    def __init__(self, classes, smoothing=0.0, dim=-1, weight = None):
-        """if smoothing == 0, it's one-hot method
-           if 0 < smoothing < 1, it's smooth method
+class LabelSmoothing(nn.Module):
+    """NLL loss with label smoothing.
+    """
+    def __init__(self, smoothing=0.0):
+        """Constructor for the LabelSmoothing module.
+        :param smoothing: label smoothing factor
         """
-        super().__init__()
+        super(LabelSmoothing, self).__init__()
         self.confidence = 1.0 - smoothing
         self.smoothing = smoothing
-        self.weight = weight
-        self.cls = classes
-        self.dim = dim
+        self.reduction = "mean"
 
-    def forward(self, prediction, target):
-
-        if self.weight is not None:
-            prediction = prediction * self.weight.unsqueeze(0)
-
-        with torch.no_grad():
-            true_dist = torch.zeros_like(prediction)
-            true_dist.fill_(self.smoothing / (self.cls - 1))
-            true_dist.scatter_(1, target.data.unsqueeze(1), self.confidence)
-        return torch.mean(torch.sum(-true_dist * prediction, dim=self.dim))
+    def forward(self, x, target):
+        logprobs = torch.nn.functional.log_softmax(x, dim=-1)
+        nll_loss = -logprobs.gather(dim=-1, index=target.unsqueeze(1))
+        nll_loss = nll_loss.squeeze(1)
+        smooth_loss = -logprobs.mean(dim=-1)
+        loss = self.confidence * nll_loss + self.smoothing * smooth_loss
+        return loss.mean()

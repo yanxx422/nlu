@@ -19,13 +19,17 @@ UNK_SYMBOL = "$UNK"
 
 def smooth_labels(labels, confidence):
     scale = {'A++':0, 'A+': 0.1, 'A0':0.2}
-    smoothed_labels = []
-    for idx, val in labels.items():
-        if val == 1:
-            smoothed_labels.append(val - scale[confidence[idx]])
+    smoothed_labels = torch.tensor([scale[confidence.iloc[0]],labels.iloc[0] - scale[confidence.iloc[0]]],
+                                   dtype=torch.float).unsqueeze(0)
+    for i in range(1, len(labels)):
+        if labels.iloc[i] == 1:
+            estimate = torch.tensor([scale[confidence.iloc[0]],labels.iloc[0] - scale[confidence.iloc[0]]],
+                                    dtype=torch.float).unsqueeze(0)
         else:
-            smoothed_labels.append(scale[confidence[idx]])
-    return torch.Tensor(smoothed_labels)
+            estimate = torch.tensor([labels.iloc[0] - scale[confidence.iloc[0]], scale[confidence.iloc[0]]],
+                                    dtype=torch.float).unsqueeze(0)
+        smoothed_labels = torch.cat((smoothed_labels, estimate),0)
+    return smoothed_labels
 
 def glove2dict(src_filename):
     """
