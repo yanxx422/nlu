@@ -2,6 +2,7 @@ import utils
 import torch
 import torch.nn as nn
 import numpy as np
+from sklearn.metrics import f1_score
 from transformers import BertModel, BertTokenizer
 from torch_shallow_neural_classifier import TorchShallowNeuralClassifier
 
@@ -177,6 +178,10 @@ class BertBaselineClassifier(TorchShallowNeuralClassifier):
 
                 batch_preds = self.model(*X_batch)
 
+                print(f"prediction: {batch_preds}")
+
+                print(f"labels: {y_batch}")
+
                 err = self.loss(batch_preds, y_batch)
 
                 if self.gradient_accumulation_steps > 1 and \
@@ -253,6 +258,34 @@ class BertBaselineClassifier(TorchShallowNeuralClassifier):
         float
 
         """
-        preds = self.predict(X, device=device)
-        return utils.safe_macro_f1(y, preds)
+        probs = self.predict_proba(X, device=device)
+        if self.use_empirical_data:
+            return utils.KL(y, probs)
+        else:
+            preds = self.predict(X, device=device)
+            return utils.safe_macro_f1(y, preds)
 
+
+    def predict(self, X, device=None):
+        """
+        Predicted labels for the examples in `X`. These are converted
+        from the integers that PyTorch needs back to their original
+        values in `self.classes_`.
+
+        Parameters
+        ----------
+        X : np.array, shape `(n_examples, n_features)`
+
+        device: str or None
+            Allows the user to temporarily change the device used
+            during prediction. This is useful if predictions require a
+            lot of memory and so are better done on the CPU. After
+            prediction is done, the model is returned to `self.device`.
+
+        Returns
+        -------
+        list, length len(X)
+
+        """
+        probs = self.predict_proba(X, device=device)
+        return [self.classes_[i] for i in probs.argmax(axis=1)]

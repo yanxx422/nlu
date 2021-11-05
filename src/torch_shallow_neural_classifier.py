@@ -181,7 +181,6 @@ class TorchShallowNeuralClassifier(TorchModelBase):
 
         """
         probs = self.predict_proba(X, device=device)
-        print(list([i for i in probs.argmax(axis=1)]))
         return [self.classes_[i] for i in probs.argmax(axis=1)]
 
 

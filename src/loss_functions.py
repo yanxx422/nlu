@@ -27,3 +27,18 @@ class LabelSmoothing(nn.Module):
         smooth_loss = -logprobs.mean(dim=-1)
         loss = self.confidence * nll_loss + self.smoothing * smooth_loss
         return loss.mean()
+
+class FocalLoss(nn.Module):
+
+    def __init__(self, alpha=0.2, gamma=2.0):
+        super(FocalLoss, self).__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+        self.cross_entropy_loss = torch.nn.CrossEntropyLoss(reduction="none")
+        self.reduction = 'mean'
+
+    def forward(self, inputs, targets):
+        CE_loss = self.cross_entropy_loss(inputs, targets)
+        pt = torch.exp(-CE_loss)
+        focal_loss = self.alpha * (1 - pt) ** self.gamma * CE_loss
+        return focal_loss.mean()

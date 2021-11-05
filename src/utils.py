@@ -17,16 +17,29 @@ START_SYMBOL = "<s>"
 END_SYMBOL = "</s>"
 UNK_SYMBOL = "$UNK"
 
+def KL(a, b):
+    delta = 0.000001
+    a = np.asarray(a, dtype=np.float)
+    b = np.asarray(b, dtype=np.float)
+    div = 0
+    for i, j in zip(a, b):
+        i+= delta
+        j+= delta
+        div+= np.sum( i * np.log(i / j),0)
+    return -div
+
+
 def smooth_labels(labels, confidence):
-    scale = {'A++':0, 'A+': 0.1, 'A0':0.2}
+    # this is crude, but where we recreate the empirical distribution
+    scale = {'A++':0, 'A+': 0.2, 'A0':0.4}
     smoothed_labels = torch.tensor([scale[confidence.iloc[0]],labels.iloc[0] - scale[confidence.iloc[0]]],
                                    dtype=torch.float).unsqueeze(0)
     for i in range(1, len(labels)):
         if labels.iloc[i] == 1:
-            estimate = torch.tensor([scale[confidence.iloc[0]],labels.iloc[0] - scale[confidence.iloc[0]]],
+            estimate = torch.tensor([scale[confidence.iloc[i]],labels.iloc[i] - scale[confidence.iloc[i]]],
                                     dtype=torch.float).unsqueeze(0)
         else:
-            estimate = torch.tensor([labels.iloc[0] - scale[confidence.iloc[0]], scale[confidence.iloc[0]]],
+            estimate = torch.tensor([1 - scale[confidence.iloc[i]], scale[confidence.iloc[i]]],
                                     dtype=torch.float).unsqueeze(0)
         smoothed_labels = torch.cat((smoothed_labels, estimate),0)
     return smoothed_labels
@@ -379,6 +392,7 @@ def fix_random_seeds(
         except ImportError:
             from tensorflow.random import set_seed as set_tf_seed
         except ImportError:
+            pass
             pass
         else:
             set_tf_seed(seed)

@@ -6,7 +6,7 @@ import utils
 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
-from loss_functions import LabelSmoothing
+from loss_functions import LabelSmoothing, FocalLoss
 
 random.seed(0)
 
@@ -40,7 +40,7 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 
 if args.baseline:
     model = BertBaselineClassifier(weights_name='bert-base-cased',
-                                   loss=LabelSmoothing(),
+                                   loss=FocalLoss(),
                                    batch_size=32,
                                    max_iter=2)
     model.fit(X_train, y_train)
@@ -50,9 +50,8 @@ if args.use_empirical_labels:
     model = BertBaselineClassifier(weights_name='bert-base-cased',
                                    loss=torch.nn.BCEWithLogitsLoss(reduction='mean'),
                                    use_empirical_data=True,
-                                   early_stopping=False,
                                    batch_size=32,
-                                   max_iter=4)
+                                   max_iter=2)
     smoothed_labels = utils.smooth_labels(y_train, confidence)
     model.fit(X_train, smoothed_labels)
     model.to_pickle(args.path_to_save_model)
